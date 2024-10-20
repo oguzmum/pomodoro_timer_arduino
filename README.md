@@ -4,13 +4,13 @@ Bisher habe ich ausschließlich die Arduino IDE genutzt, um Mikrocontroller zu p
 Um dieser Abstraktion zu entgehen und das "richtige" Programmieren von Mikrocontrollern zu lernen, habe ich mich entschieden, dieses Projekt durchzuführen. Außerdem möchte ich Timer- und Hardware-Interrupts verwenden, und ich denke, dass sich ein Pomodoro-Timer dafür hervorragend eignet.
 
 # Skizze zum Vorhaben
-- keine feste Lern-/Fokuszeit (`lernZeit`) sondern läuft quasi unendlich lange
-- basierend auf `lernZeit` die Dauer der Pause (`pausenZeit`) berechnen
-    - mit Knopfdruck die Lernzeit abbrechen und in die Pause gehen
-        - die ersten drei male wird 20% der `lernZeit` als `pausenZeit` genommen
-            -  $\small pausenZeit = lernZeit \cdot 0.2$
+- keine feste Fokuszeit (`fokusZeit`) sondern läuft quasi unendlich lange
+- basierend auf `fokusZeit` die Dauer der Pause (`pausenZeit`) berechnen
+    - mit Knopfdruck die FokusZeit abbrechen und in die Pause gehen
+        - die ersten drei male wird 20% der `fokusZeit` als `pausenZeit` genommen
+            -  $\small pausenZeit = fokusZeit \cdot 0.2$
         - beim vierten mal 40% 
-            - $\small  pausenZeit = lernZeit \cdot 0.4$
+            - $\small  pausenZeit = fokusZeit \cdot 0.4$
         - wenn's nach dem vierten mal weitergeht, dann wieder erst drei mal 20%, dann 40% etc. 
 - 7 Segment Display für : 
     - Zeit 
@@ -18,3 +18,53 @@ Um dieser Abstraktion zu entgehen und das "richtige" Programmieren von Mikrocont
     - die 4 Zyklen Rundenzahl
 - Buzzer Sound o.ä der ein Audiosignal gibt, wenn die Pause zu Ende ist
 - Knopf der alles zurücksetzt
+
+
+# Technische Umsetzung
+
+Ich nutze ein Uno R3 mit einem ATMega328P Mikrocontroller. 
+Die Register beziehen sich also auf den ATMega328P $\mu$C 
+
+- Register die man allg. braucht: 
+    - `SREG` - Interrupts allgemein aktivieren
+
+
+## Zeit
+- Benötigte Register (was ich zmd aktuell denke :) ):
+    - `TCNT1` - aktueller Wert des Zählers (16 Bit)
+    - `OCR1A/B` - Wert festlegen, wann der Interrupt ausgelöst werden soll
+    - `TCCR1A/B/C` - timer an sich konfigurieren; zB `TCNT1` zurücksetzen wenn `OCR1A/B` erreicht
+    - `TIMSK0/1` - das `OCR1A/B` aktivieren für den Vergleich
+    - `TIFR1` - Interrupt Flags abfragen
+
+<br/>
+
+- Fokuszeit zb mit `TCCR1A` und damit einhergehende Register
+    - wo drin speichern, wie lange man fokussiert war?
+        - zB eine Variable die aber nur 1 mal pro (halbe) Minute aktualisiert wird
+- Pausenzeit zb mit `TCCR1B` ""
+    - hier auch eine Variable die vergleicht, wann die Pause zu Ende ist
+<br/>
+
+- so umsetzten das jede Sekunde der Timer Interrupt ausgelöst wird? 
+    - und in der ISR dann die 7 Segment Anzeige aktualieren
+
+- ==$\rightarrow$ oder ich nutze nur einen Timer statt zwei und mache eine Fallunterscheidung==
+
+
+## Knopfdruck (Hardware Interrupt)
+- Pins PD3 (INT1) und PD2 (INT0) eignen sich dafür
+- Register: 
+    - `EICRA` - logikzustand für INT1 und INT0 einstellen (wann interrupt ausgelöst werden soll)
+    - `EIMSK` - pins allg. aktivieren für Interrupt
+
+- Pausieren: mit INT0
+- Reset: mit INT1
+
+## Rundenzahl und 4 Zyklen Runden
+- in einer einfachen Variable speichern 
+    - die Variable Dekodiert auf 7 Segment anzeige ausgeben :)
+
+## Buzzer
+- mit Ende der Pausenzeit den Buzzer Sound aktivieren
+    - in der ISR mit einbauen, dass das am Ende passieren muss
