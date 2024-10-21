@@ -68,3 +68,30 @@ Die Register beziehen sich also auf den ATMega328P $\mu$C
 ## Buzzer
 - mit Ende der Pausenzeit den Buzzer Sound aktivieren
     - in der ISR mit einbauen, dass das am Ende passieren muss
+
+
+# Probleme (während der Entwicklung)
+
+## Hardware Interrupt löst zweimal oder öfter aus
+
+- zB der Hardware Interrupt mit INT0
+- eingestellt auf Low Flanke die ISR auszulösen
+- hat aber bei einem mal Knopf betätigen 2 oder sogar $\gt$ 2 ausgelöst
+Code womit ich das festgestellt habe (`count` ist eine globale Variable)
+```c
+ISR(INT0_vect){
+  char buffer[50];
+  sprintf(buffer, "Button gedrueckt %i", count);
+  count++;
+  Serial.println(buffer);
+}
+```
+### Lösung
+- zustand in einer Variable zwischenspeichern und in der while loop prüfen 
+- ja ich weiss, ich hätte auch direkt die ISR für den HW Interrupt weglassen können wenn ich das so löse aber mir ging es darum, Interrupts anzuwenden, deswegen jz die Lösung erstmal so :)
+#### alternative
+- `EIFR |= 0x01;` 
+    - External Interrupt Flag Register zurücksetzen am Anfang der ISR
+    - weiss aber nicht ob sowas gemacht werden soll/darf, deswegen verschmissen
+- man kanns wohl auch mit einem RC filter lösen - zu viel Aufwand für mich jz aber :)
+

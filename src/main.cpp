@@ -1,11 +1,22 @@
 //nichts von arduino abstraktion verwenden :) 
-#include <stdio.h>
+#include <Arduino.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
+volatile unsigned count = 0; 
+volatile boolean pd2pressed = false; 
 
 ISR(INT0_vect){
-//hier ein reset
+  //button wurde eben nicht gedrückt; jetzt erst neu
+  if(!pd2pressed)
+  { 
+    pd2pressed = true; 
+    char buffer[50];
+    sprintf(buffer, "Button gedrueckt %i", count);
+    count++;
+    Serial.println(buffer);
+  }
+  
 }
 
 ISR(INT1_vect){
@@ -16,6 +27,8 @@ ISR(INT1_vect){
 
 
 int main(){
+  Serial.begin(115200);
+
   //erstmal nur die Hardware Interrupts zum testen
   
   //PD2 und PD3 als Eingang konfigurieren
@@ -34,6 +47,19 @@ int main(){
   //bit 7 vom status register um interrupts global zu aktivieren
   SREG |= 0x80; 
 
+  Serial.println("Hello World\n");
+
+  
+  while(1){
+
+    //Lösung um das > 2 mal ausführen der HW ISR bei Buttonklick zu umgehen
+    //ja ich weiss, ich hätte auch direkt die ISR für den HW Interrupt weglassen können wenn ich das so löse
+    //aber mir ging es darum, Interrupts anzuwenden, deswegen jz die Lösung erstmal so :)
+    if (PIND & (1 << PD2)) { // button pd2 ist im moment nicht gedrückt
+      pd2pressed = false; 
+    }
+
+  }
 
   return 0; 
 }
