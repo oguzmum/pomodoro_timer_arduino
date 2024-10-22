@@ -3,7 +3,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-volatile unsigned count = 0; 
+volatile unsigned count, countTimer = 0; 
 volatile boolean pd2pressed = false; 
 
 ISR(INT0_vect){
@@ -24,6 +24,13 @@ ISR(INT1_vect){
 }
 
 
+ISR(TIMER1_COMPA_vect){
+    //ISR die jede Sekunde ausgelöst wird :) 
+    char buffer[50];
+    sprintf(buffer, "sekunden ISR %i", countTimer);
+    countTimer++;
+    Serial.println(buffer);
+}
 
 
 int main(){
@@ -44,6 +51,27 @@ int main(){
     EIMSK = 0x03; 
 
 
+    TCCR1B = 0b00001101;
+    /*  
+    *   Bit 7 
+    *   Bit 6
+    *   Bit 5 
+    *   Bit 4 WGM13
+    *   Bit 3 WGM12 - 1 -> um OCR1A zurückzusetzen
+    *   Bit 2 CS12  - 1  - \
+    *   Bit 1 CS11  - 0  - -> 1024 als Prescaler
+    *   Bit 0 CS10  - 1  - /   
+    */
+
+
+    TIMSK1 = 0x02;
+    //bit 1 um OCR1A zu aktivieren und für den Interrupt zu nutzen
+
+
+    OCR1A = 19531; //s. ReadMe um nachzuvollziehen, wieso dieser Wert
+
+    TCNT1 = 0; //den 16 Bit Zähler mit 0 initialsieren
+
     //bit 7 vom status register um interrupts global zu aktivieren
     SREG |= 0x80; 
 
@@ -52,12 +80,12 @@ int main(){
 
     while(1){
 
-    //Lösung um das > 2 mal ausführen der HW ISR bei Buttonklick zu umgehen
-    //ja ich weiss, ich hätte auch direkt die ISR für den HW Interrupt weglassen können wenn ich das so löse
-    //aber mir ging es darum, Interrupts anzuwenden, deswegen jz die Lösung erstmal so :)
-    if (PIND & (1 << PD2)) { // button pd2 ist im moment nicht gedrückt
-        pd2pressed = false; 
-    }
+        //Lösung um das > 2 mal ausführen der HW ISR bei Buttonklick zu umgehen
+        //ja ich weiss, ich hätte auch direkt die ISR für den HW Interrupt weglassen können wenn ich das so löse
+        //aber mir ging es darum, Interrupts anzuwenden, deswegen jz die Lösung erstmal so :)
+        if (PIND & (1 << PD2)) { // button pd2 ist im moment nicht gedrückt
+            pd2pressed = false; 
+        }
 
     }
 

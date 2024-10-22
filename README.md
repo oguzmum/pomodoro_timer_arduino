@@ -33,7 +33,7 @@ Die Register beziehen sich also auf den ATMega328P $\mu$C
 - Benötigte Register (was ich zmd aktuell denke :) ):
     - `TCNT1` - aktueller Wert des Zählers (16 Bit)
     - `OCR1A/B` - Wert festlegen, wann der Interrupt ausgelöst werden soll
-    - `TCCR1A/B/C` - timer an sich konfigurieren; zB `TCNT1` zurücksetzen wenn `OCR1A/B` erreicht
+    - `TCCR1A/B/C` - timer an sich konfigurieren
     - `TIMSK0/1` - das `OCR1A/B` aktivieren für den Vergleich
     - `TIFR1` - Interrupt Flags abfragen
 
@@ -51,6 +51,28 @@ Die Register beziehen sich also auf den ATMega328P $\mu$C
 
 - ==$\rightarrow$ oder ich nutze nur einen Timer statt zwei und mache eine Fallunterscheidung==
 
+
+### Berechnungen
+- ATMega328P hat 20 MHz 
+$$
+\begin{aligned}
+    f &= \frac{1}{T} \\[0.3cm]
+    20 \cdot 10^6 \frac{1}{s} &= \frac{1}{T} \\[0.3cm]
+    T &= \frac{1}{20 \cdot 10^6 \frac{1}{s}} \\[0.3cm]
+    T &= 50 \cdot 10^{-9}s = 50\ ns
+\end{aligned}
+$$ 
+
+---
+
+- Wunschzeit für Interrupt Auslösung: 1 sekunde
+    - Berechnung: $t_{wunschzeit} = \frac{1}{f_{atmega328P}} \cdot prescaler \cdot comparewert$
+        - prescaler - lässt sich einstellen in dem Register `TCCR1B`
+            - Wirkung: Frequenz teilen um bestimmten Wert; 1, 8, 64, 256 oder 1024
+        - comparewert - der Wert im `OCR1A/B` Register
+        - --> beide frei wählbar um bestmöglich auf 1 sekunde zu kommen :)
+    - Meine Konfig: $1s = \frac{1}{20 \cdot 10^6 \frac{1}{s}} \cdot 1024 \cdot 19531$
+        - damit komme ich auf $0,9999872\ s$
 
 ## Knopfdruck (Hardware Interrupt)
 - Pins PD3 (INT1) und PD2 (INT0) eignen sich dafür
