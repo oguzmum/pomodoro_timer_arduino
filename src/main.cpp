@@ -45,6 +45,25 @@ ISR(TIMER1_COMPA_vect){
 }
 
 
+void updateTimerDisplays(){
+    unsigned short sekunden = timeInSeconds % 60; //sekunden nur zwischen 0 und 59 möglich :) 
+    unsigned short minuten = (timeInSeconds / 60) % 60;  //selbe logik wie sekunden. aber vorher in minuten umrechen :) 
+
+    unsigned short sekundenEiner = sekunden % 10;
+    unsigned short sekundenZehner = sekunden / 10; //durch rundung entfallen nachkommastellen, ergebnis zwischen 0 und 5, weil sekunden max 59
+    unsigned short minutenEiner = minuten % 10; 
+    unsigned short minutenZehner = minuten / 10; 
+
+    //hier noch die Zeiten auf die Displays ausgeben 
+    //so etwa, 
+    
+    //PORTC |= ziffer_to_7seg[sekundenEiner];
+
+
+    //aber muss hier noch genauer rein, wennn ich jz noch ein PORTC = .. mache, wird ja alles überschrieben :(
+}
+
+
 int main(){
     Serial.begin(115200);
 
