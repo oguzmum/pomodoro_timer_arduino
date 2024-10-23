@@ -1,3 +1,21 @@
+- [Motivation für dieses Projekt](#motivation-für-dieses-projekt)
+- [Skizze zum Vorhaben](#skizze-zum-vorhaben)
+- [Technische Umsetzung](#technische-umsetzung)
+  - [Zeit](#zeit)
+    - [Berechnungen für die Interrupts](#berechnungen-für-die-interrupts)
+    - [7 Segment Anzeige](#7-segment-anzeige)
+    - [Umsetzung der Zeitberechnung im Code](#umsetzung-der-zeitberechnung-im-code)
+  - [Knopfdruck (Hardware Interrupt)](#knopfdruck-hardware-interrupt)
+  - [Rundenzahl und 4 Zyklen Runden](#rundenzahl-und-4-zyklen-runden)
+  - [Buzzer](#buzzer)
+- [Probleme (während der Entwicklung)](#probleme-während-der-entwicklung)
+  - [Hardware Interrupt löst zweimal oder öfter aus](#hardware-interrupt-löst-zweimal-oder-öfter-aus)
+    - [Lösung](#lösung)
+      - [alternative](#alternative)
+  - [ATMega328P hat zu wenig Pins für meinen Anwendungsfall](#atmega328p-hat-zu-wenig-pins-für-meinen-anwendungsfall)
+
+
+
 # Motivation für dieses Projekt 
 Bisher habe ich ausschließlich die Arduino IDE genutzt, um Mikrocontroller zu programmieren. Im Rahmen meines Studiums, im Modul Mikrocontroller, habe ich jedoch die direkte Programmierung von Mikrocontrollern in C kennengelernt. Dabei ist mir klar geworden, wie stark die Arduino IDE vieles abstrahiert und vereinfacht.
 
@@ -52,7 +70,7 @@ Die Register beziehen sich also auf den ATMega328P $\mu$C
 - ==$\rightarrow$ oder ich nutze nur einen Timer statt zwei und mache eine Fallunterscheidung==
 
 
-### Berechnungen
+### Berechnungen für die Interrupts
 - ATMega328P hat 20 MHz 
 $$
 \begin{aligned}
@@ -73,6 +91,36 @@ $$
         - --> beide frei wählbar um bestmöglich auf 1 sekunde zu kommen :)
     - Meine Konfig: $1s = \frac{1}{20 \cdot 10^6 \frac{1}{s}} \cdot 1024 \cdot 19531$
         - damit komme ich auf $0,9999872\ s$
+
+### 7 Segment Anzeige
+- ich habe die 5161AS 7 Segment Anzeigen
+  - die basieren auf gleicher Kathode. Sind also High Aktiv
+
+| Ziffer | A | B | C | D | E | F | G |
+|--------|---|---|---|---|---|---|---|
+| 0      | 1 | 1 | 1 | 1 | 1 | 1 | 0 |
+| 1      | 0 | 1 | 1 | 0 | 0 | 0 | 0 |
+| 2      | 1 | 1 | 0 | 1 | 1 | 0 | 1 |
+| 3      | 1 | 1 | 1 | 1 | 0 | 0 | 1 |
+| 4      | 0 | 1 | 1 | 0 | 0 | 1 | 1 |
+| 5      | 1 | 0 | 1 | 1 | 0 | 1 | 1 |
+| 6      | 1 | 0 | 1 | 1 | 1 | 1 | 1 |
+| 7      | 1 | 1 | 1 | 0 | 0 | 0 | 0 |
+| 8      | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| 9      | 1 | 1 | 1 | 1 | 0 | 1 | 1 |
+
+
+### Umsetzung der Zeitberechnung im Code
+- grundlegend würde ich nur Minuten und Sekunden anzeigen. also zB 10:25 (10 Minuten, 25 Sekunden), 90:12 (90 Minuten, 12 Sekunden)
+
+- zwei Ansätze die mir einfallen
+1. für jede Stelle eine eigene Variable `einserSekunde`, `zehnerSekunde`, `einserMinute`, `zehnerMinute`
+  - in der ISR die dann entsprechend hochzählen ... etc
+  - --> aber das ist ziemlich ineffektiv und unlesbar
+2. bessere Alternative: die Sekunde nur hochzählen (eine Variable)
+   - mit mathematischen Rechnungen aus der Sekunde die zu anzeigenden Zahlen herausarbeiten
+
+- in Beiden fällen natürlich in der ISR nur das hochzählen, dass eigentlichen ansteuern der 7 Segment Displays in der hauptschleife
 
 ## Knopfdruck (Hardware Interrupt)
 - Pins PD3 (INT1) und PD2 (INT0) eignen sich dafür
@@ -117,3 +165,11 @@ ISR(INT0_vect){
     - weiss aber nicht ob sowas gemacht werden soll/darf, deswegen verschmissen
 - man kanns wohl auch mit einem RC filter lösen - zu viel Aufwand für mich jz aber :)
 
+
+## ATMega328P hat zu wenig Pins für meinen Anwendungsfall
+
+- PortD gibt es 8 Pins, da benutze ich aber 2 von für Hardware Interrupts
+- PortC hat zwar 7, aber einer davon für Reset reserviert
+- Port B nur 6 
+- --> kann also leider nicht nur einen Port nutzen für die 7 Segment anzeigen, muss das iwie anders lösen
+  - ich werde wsh Port C Pin 0 - 5 nehmen und Port D Pin 6 - 7

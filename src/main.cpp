@@ -6,6 +6,17 @@
 volatile unsigned count, countTimer = 0; 
 volatile boolean pd2pressed = false; 
 
+
+//unsigned int sind 16 Bit -> max.: 65536 sekunden
+// 65536 s * 1min/60s = 1092,26666667 min maximal darstellbar - reicht vollkommen aus
+volatile unsigned int timeInSeconds = 0; 
+
+//lesen wie folgt: DP G F E D C B A
+//                MSB             LSB
+//gemeinsame Kathode: 0 -> aus, 1 -> leuchtet
+//s. Tabelle im ReadMe für mehr Referenz
+const uint8_t ziffer_to_7seg[10] = {0b00111111, 0b00000110,0b01011011, 0b01001111, 0b01100110, 0b01101101, 0b01111101, 0b00000111, 0b01111111, 0b01101111};
+
 ISR(INT0_vect){
     //button wurde eben nicht gedrückt; jetzt erst neu
     if(!pd2pressed)
@@ -25,6 +36,7 @@ ISR(INT1_vect){
 
 
 ISR(TIMER1_COMPA_vect){
+    timeInSeconds++;
     //ISR die jede Sekunde ausgelöst wird :) 
     char buffer[50];
     sprintf(buffer, "sekunden ISR %i", countTimer);
@@ -36,11 +48,17 @@ ISR(TIMER1_COMPA_vect){
 int main(){
     Serial.begin(115200);
 
-    //erstmal nur die Hardware Interrupts zum testen
 
     //PD2 und PD3 als Eingang konfigurieren
     //0 Eingang, 1 Ausgang
     DDRD |= 0b00000000; //oder: 0x00 oder 0 :)
+
+    DDRC |= 0b11111111; //alles als Ausgang definieren
+
+    /*
+    * Einstellungen für Interrupt
+    *
+    */
 
     //bit 7-4 keine fkt
     //bit 3 & 2 für INT1 (PD3) -> will hiermit Pausieren
@@ -57,7 +75,7 @@ int main(){
     *   Bit 6
     *   Bit 5 
     *   Bit 4 WGM13
-    *   Bit 3 WGM12 - 1 -> um OCR1A zurückzusetzen
+    *   Bit 3 WGM12 - 1 -> um OCR1A zurückzusetzen wenn TCNT1 = OCR1A
     *   Bit 2 CS12  - 1  - \
     *   Bit 1 CS11  - 0  - -> 1024 als Prescaler
     *   Bit 0 CS10  - 1  - /   
@@ -77,6 +95,7 @@ int main(){
 
     Serial.println("Hello World\n");
 
+    PORTC = 0xff; 
 
     while(1){
 
